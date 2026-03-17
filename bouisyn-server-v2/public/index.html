@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BouiSyn Exchange — BSX</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600;700&family=Exo+2:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg0:#060a0f;--bg1:#0a0f17;--bg2:#0e1620;--bg3:#111e2e;
+  --border:#1a2a3a;--border2:#243650;
+  --text1:#ddeeff;--text2:#7a9ab8;--text3:#3a5a7a;
+  --accent:#2a8fd4;--accent2:#1a6aaa;
+  --green:#2ac48a;--green2:#1a8a60;
+  --red:#d44a4a;--red2:#aa2a2a;
+  --purple:#8a5ad4;--amber:#d4a020;--cyan:#20c4d4;--gold:#f0c040;
+  --mono:'Share Tech Mono',monospace;--sans:'Rajdhani',sans-serif;--body:'Exo 2',sans-serif;
+}
+html,body{height:100%;background:var(--bg0);color:var(--text1);font-family:var(--body);font-size:14px;overflow-x:hidden}
+::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:var(--bg1)}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+
+/* ── CONNECTING SCREEN ── */
+.connect-screen{position:fixed;inset:0;background:var(--bg0);z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px}
+.connect-logo{font-family:var(--sans);font-size:32px;font-weight:700;letter-spacing:4px;text-transform:uppercase}
+.connect-logo em{color:var(--accent);font-style:normal}
+.connect-status{font-family:var(--mono);font-size:13px;color:var(--text3);letter-spacing:1px}
+.connect-dot{display:inline-block;animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.connect-err{font-family:var(--mono);font-size:13px;color:var(--red);margin-top:8px;text-align:center;max-width:340px;line-height:1.6}
+.connect-retry{margin-top:12px;padding:8px 20px;background:transparent;border:1px solid var(--border2);border-radius:6px;color:var(--text2);font-family:var(--mono);font-size:12px;cursor:pointer;transition:all .15s;display:none}
+.connect-retry:hover{border-color:var(--accent);color:var(--text1)}
+
+/* ── AUTH SCREEN ── */
+.auth-screen{position:fixed;inset:0;background:var(--bg0);z-index:9000;display:none;align-items:center;justify-content:center;flex-direction:column}
+.auth-logo{font-family:var(--sans);font-size:32px;font-weight:700;letter-spacing:4px;text-transform:uppercase;margin-bottom:6px}
+.auth-logo em{color:var(--accent);font-style:normal}
+.auth-sub{font-family:var(--mono);font-size:12px;color:var(--text3);letter-spacing:2px;margin-bottom:36px}
+.auth-box{background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:28px 32px;width:360px;max-width:95vw}
+.auth-tabs{display:flex;margin-bottom:24px;border-bottom:1px solid var(--border)}
+.auth-tab{flex:1;padding:8px;text-align:center;font-family:var(--mono);font-size:12px;letter-spacing:1px;cursor:pointer;color:var(--text3);border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s}
+.auth-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.auth-field{margin-bottom:14px}
+.auth-label{font-family:var(--mono);font-size:10px;letter-spacing:1.5px;color:var(--text3);text-transform:uppercase;margin-bottom:6px}
+.auth-input{width:100%;background:var(--bg0);border:1px solid var(--border2);border-radius:6px;color:var(--text1);font-family:var(--mono);font-size:14px;padding:9px 12px;outline:none;transition:border-color .15s}
+.auth-input:focus{border-color:var(--accent)}
+.auth-btn{width:100%;padding:11px;background:var(--accent2);border:1px solid var(--accent);border-radius:7px;color:var(--text1);font-family:var(--sans);font-size:16px;font-weight:600;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:background .15s;margin-top:4px}
+.auth-btn:hover{background:var(--accent)}
+.auth-btn:disabled{opacity:.5;cursor:not-allowed}
+.auth-err{font-family:var(--mono);font-size:12px;color:var(--red);margin-top:8px;min-height:16px}
+
+/* ── APP ── */
+.app{display:grid;grid-template-rows:56px 1fr;grid-template-columns:220px 1fr;height:100vh;display:none}
+.topbar{grid-column:1/-1;background:var(--bg1);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 20px;z-index:100}
+.sidebar{background:var(--bg1);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:16px 0;overflow-y:auto}
+.main{background:var(--bg0);overflow-y:auto;padding:24px}
+
+/* ── TOPBAR ── */
+.logo{font-family:var(--sans);font-size:20px;font-weight:700;letter-spacing:3px;color:var(--text1);text-transform:uppercase}
+.logo em{color:var(--accent);font-style:normal}
+.topbar-center{display:flex;gap:20px;align-items:center}
+.ticker-item{font-family:var(--mono);font-size:12px;display:flex;gap:6px;align-items:center}
+.ticker-name{color:var(--text2)}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.clock{font-family:var(--mono);font-size:13px;color:var(--text3)}
+.wallet-badge{background:var(--bg2);border:1px solid var(--border2);border-radius:6px;padding:5px 12px;font-family:var(--mono);font-size:13px;color:var(--green)}
+.ws-badge{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:12px;color:var(--text3);background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:5px 10px}
+.ws-dot{width:7px;height:7px;border-radius:50%;background:var(--green);transition:background .3s}
+.ws-dot.off{background:var(--red)}
+.ws-dot.saving{background:var(--amber)}
+.user-badge{background:var(--bg2);border:1px solid var(--border2);border-radius:6px;padding:5px 12px;font-family:var(--mono);font-size:12px;color:var(--text2);cursor:pointer;display:flex;align-items:center;gap:8px;transition:all .15s}
+.user-badge:hover{border-color:var(--accent);color:var(--text1)}
+
+/* ── SIDEBAR ── */
+.sidebar-section{padding:0 12px;margin-bottom:6px}
+.sidebar-label{font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--text3);text-transform:uppercase;padding:10px 8px 6px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:6px;cursor:pointer;font-size:14px;color:var(--text2);transition:all .15s;border:1px solid transparent;margin-bottom:2px}
+.nav-item:hover{background:var(--bg2);color:var(--text1)}
+.nav-item.active{background:var(--bg3);border-color:var(--border2);color:var(--text1)}
+.nav-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.online-count{font-family:var(--mono);font-size:10px;background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:1px 6px;color:var(--green);margin-left:auto}
+.sidebar-resources{margin-top:auto;padding:12px;border-top:1px solid var(--border)}
+.res-row{display:flex;justify-content:space-between;align-items:center;padding:6px 8px;border-radius:5px;background:var(--bg2);margin-bottom:6px}
+.res-label{font-size:12px;color:var(--text2);display:flex;align-items:center;gap:7px}
+.res-val{font-family:var(--mono);font-size:14px;color:var(--text1)}
+
+/* ── PAGES ── */
+.page{display:none}.page.active{display:block}
+.page-header{margin-bottom:24px}
+.page-title{font-family:var(--sans);font-size:26px;font-weight:600;color:var(--text1);letter-spacing:1px}
+.page-sub{font-size:13px;color:var(--text3);margin-top:4px;font-family:var(--mono)}
+
+/* ── CARDS ── */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:18px}
+.card-sm{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px}
+
+/* ── GRIDS ── */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+
+/* ── STATS ── */
+.stat-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;font-family:var(--mono);margin-bottom:6px}
+.stat-val{font-family:var(--mono);font-size:24px;color:var(--text1);line-height:1}
+.stat-sub{font-size:12px;color:var(--text3);margin-top:4px}
+.stat-change{font-family:var(--mono);font-size:13px;margin-top:4px}
+.up{color:var(--green)}.down{color:var(--red)}
+
+/* ── MARKET TABLE ── */
+.market-table{width:100%;border-collapse:collapse}
+.market-table th{font-family:var(--mono);font-size:10px;letter-spacing:1.5px;color:var(--text3);text-transform:uppercase;padding:8px 12px;text-align:left;border-bottom:1px solid var(--border)}
+.market-table td{padding:12px;border-bottom:1px solid var(--border);font-size:14px}
+.market-table tbody tr{cursor:pointer;transition:background .12s}
+.market-table tbody tr:hover{background:var(--bg3)}
+.market-table tbody tr:last-child td{border-bottom:none}
+
+/* ── BADGES & BUTTONS ── */
+.badge{display:inline-block;font-size:10px;padding:2px 7px;border-radius:3px;font-family:var(--mono);letter-spacing:.5px}
+.badge-energy{background:#0d2a1a;color:var(--green);border:1px solid var(--green2)}
+.badge-genetics{background:#1a0d30;color:var(--purple);border:1px solid #4a2a80}
+.badge-syn{background:#0a1e2e;color:var(--accent);border:1px solid var(--accent2)}
+.badge-dia{background:#1a0d30;color:var(--purple);border:1px solid #4a2a80}
+.btn-sm{font-family:var(--mono);font-size:12px;padding:4px 10px;border-radius:5px;cursor:pointer;border:1px solid;transition:all .15s}
+.btn-buy{background:#0d2a1a;color:var(--green);border-color:var(--green2)}.btn-buy:hover{background:#133520}
+.btn-sell{background:#2a0d0d;color:var(--red);border-color:var(--red2)}.btn-sell:hover{background:#351313}
+
+/* ── CHART ── */
+.chart-wrap{position:relative;height:280px}
+.chart-wrap-sm{position:relative;height:180px}
+
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:1000;display:none;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:24px;width:380px;max-width:95vw}
+.modal-title{font-family:var(--sans);font-size:20px;font-weight:600;color:var(--text1);margin-bottom:4px}
+.modal-ticker{font-family:var(--mono);font-size:12px;color:var(--text3);margin-bottom:18px}
+.modal-price{font-family:var(--mono);font-size:32px;color:var(--text1);margin-bottom:4px}
+.modal-change{font-family:var(--mono);font-size:14px;margin-bottom:10px}
+.modal-owned{font-size:12px;color:var(--text3);font-family:var(--mono);margin-bottom:14px}
+.input-label{font-size:12px;color:var(--text3);font-family:var(--mono);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px}
+.qty-control{display:flex;gap:8px;align-items:center;margin-bottom:14px}
+.qty-btn{background:var(--bg3);border:1px solid var(--border2);color:var(--text1);width:34px;height:34px;border-radius:6px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.qty-btn:hover{background:var(--bg1)}
+.qty-input{flex:1;background:var(--bg0);border:1px solid var(--border2);border-radius:6px;color:var(--text1);font-family:var(--mono);font-size:18px;padding:6px 12px;outline:none;text-align:center}
+.qty-input:focus{border-color:var(--accent)}
+.cost-preview{background:var(--bg0);border:1px solid var(--border);border-radius:6px;padding:10px 14px;margin-bottom:18px;display:flex;justify-content:space-between}
+.cost-key{font-size:13px;color:var(--text3)}
+.cost-val{font-family:var(--mono);font-size:14px;color:var(--text1)}
+.modal-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.modal-btn{padding:11px;border-radius:7px;font-family:var(--sans);font-size:15px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;border:none;transition:opacity .15s,transform .1s}
+.modal-btn:active{transform:scale(.97)}
+.modal-btn.buy{background:#1a4a2e;color:var(--green);border:1px solid var(--green2)}.modal-btn.buy:hover{background:#1e5a38}
+.modal-btn.sell{background:#3a1a1a;color:var(--red);border:1px solid var(--red2)}.modal-btn.sell:hover{background:#4a2020}
+.modal-btn:disabled{opacity:.3;cursor:not-allowed}
+.modal-close{width:100%;padding:8px;background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--text3);cursor:pointer;font-family:var(--mono);font-size:12px;letter-spacing:1px;transition:all .15s}
+.modal-close:hover{border-color:var(--border2);color:var(--text2)}
+
+/* ── CHART PAGE ── */
+.chart-sel-btn{font-family:var(--mono);font-size:12px;padding:5px 12px;border-radius:5px;cursor:pointer;border:1px solid var(--border);background:var(--bg2);color:var(--text2);transition:all .15s}
+.chart-sel-btn:hover,.chart-sel-btn.active{border-color:var(--accent);color:var(--text1);background:var(--bg3)}
+.range-btn{font-family:var(--mono);font-size:11px;padding:4px 9px;border-radius:4px;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text3);transition:all .12s}
+.range-btn:hover,.range-btn.active{background:var(--bg3);color:var(--text1);border-color:var(--border2)}
+
+/* ── PORTFOLIO ── */
+.port-row{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--border);font-size:14px;gap:8px}
+.port-row:last-child{border-bottom:none}
+.port-name{font-weight:500;color:var(--text1)}
+.port-ticker{font-family:var(--mono);font-size:11px;color:var(--text3);margin-top:2px}
+.port-qty{font-family:var(--mono);font-size:14px;color:var(--text2);text-align:right}
+.port-val{font-family:var(--mono);font-size:15px;color:var(--accent);text-align:right}
+.port-pnl{font-family:var(--mono);font-size:12px;text-align:right}
+.port-empty{text-align:center;padding:30px;color:var(--text3);font-family:var(--mono);font-size:13px}
+
+/* ── LEADERBOARD ── */
+.lb-row{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border);transition:background .12s}
+.lb-row:last-child{border-bottom:none}
+.lb-row:hover{background:var(--bg3)}
+.lb-rank{font-family:var(--mono);font-size:18px;font-weight:700;min-width:32px;text-align:center}
+.lb-r1{color:var(--gold)}.lb-r2{color:#c0c0c0}.lb-r3{color:#cd7f32}.lb-rn{color:var(--text3)}
+.lb-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--sans);font-size:15px;font-weight:700;flex-shrink:0;color:#fff}
+.lb-name{flex:1;font-size:15px;font-weight:500}
+.lb-total{font-family:var(--mono);font-size:16px;text-align:right}
+.lb-pnl{font-family:var(--mono);font-size:12px;text-align:right;margin-top:2px}
+.lb-me-card{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.lb-refresh{font-family:var(--mono);font-size:11px;color:var(--text3);background:transparent;border:1px solid var(--border);border-radius:5px;padding:4px 10px;cursor:pointer;transition:all .15s}
+.lb-refresh:hover{border-color:var(--border2);color:var(--text2)}
+
+/* ── LOGOUT ── */
+.logout-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:2000;display:none;align-items:center;justify-content:center}
+.logout-overlay.open{display:flex}
+.logout-box{background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:24px;width:300px;text-align:center}
+.logout-box h3{font-family:var(--sans);font-size:18px;margin-bottom:8px}
+.logout-box p{font-size:13px;color:var(--text3);margin-bottom:20px}
+.logout-btns{display:flex;gap:10px}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:24px;right:24px;padding:12px 18px;border-radius:8px;font-family:var(--mono);font-size:13px;z-index:9999;opacity:0;transform:translateY(8px);transition:all .3s;pointer-events:none;max-width:300px}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.success{background:#0d2a1a;color:var(--green);border:1px solid var(--green2)}
+.toast.error{background:#2a0d0d;color:var(--red);border:1px solid var(--red2)}
+.toast.info{background:var(--bg3);color:var(--accent);border:1px solid var(--border2)}
+
+/* ── MISC ── */
+.detail-grid{display:flex;gap:20px;flex-wrap:wrap}
+.detail-item{flex:1;min-width:100px}
+.detail-key{font-size:11px;color:var(--text3);font-family:var(--mono);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+.detail-val{font-family:var(--mono);font-size:16px;color:var(--text1)}
+.section-label{font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--accent);text-transform:uppercase;margin-bottom:12px}
+.flex-between{display:flex;justify-content:space-between;align-items:center}
+.mt16{margin-top:16px}.mt24{margin-top:24px}.mb16{margin-bottom:16px}
+hr.sep{border:none;border-top:1px solid var(--border);margin:16px 0}
+</style>
+</head>
+<body>
+
+<!-- CONNEXION AU SERVEUR -->
+<div class="connect-screen" id="connectScreen">
+  <div class="connect-logo">BOUI<em>SYN</em> EXCHANGE</div>
+  <div class="connect-status" id="connectStatus">Connexion au serveur<span class="connect-dot">...</span></div>
+  <div class="connect-err" id="connectErr"></div>
+  <button class="connect-retry" id="connectRetry" onclick="initWS()">Réessayer</button>
+</div>
+
+<!-- AUTH -->
+<div class="auth-screen" id="authScreen">
+  <div class="auth-logo">BOUI<em>SYN</em> EXCHANGE</div>
+  <div class="auth-sub">BSX — TERMINAL DE TRADING MULTIJOUEUR</div>
+  <div class="auth-box">
+    <div class="auth-tabs">
+      <div class="auth-tab active" id="tab-login" onclick="switchTab('login')">CONNEXION</div>
+      <div class="auth-tab" id="tab-register" onclick="switchTab('register')">CRÉER UN COMPTE</div>
+    </div>
+    <div id="form-login">
+      <div class="auth-field"><div class="auth-label">Pseudo</div><input class="auth-input" id="login-user" type="text" placeholder="Votre pseudo" autocomplete="username"></div>
+      <div class="auth-field"><div class="auth-label">Mot de passe</div><input class="auth-input" id="login-pass" type="password" placeholder="••••••••" autocomplete="current-password"></div>
+      <div class="auth-err" id="login-err"></div>
+      <button class="auth-btn" id="login-btn" onclick="doLogin()">ENTRER</button>
+    </div>
+    <div id="form-register" style="display:none">
+      <div class="auth-field"><div class="auth-label">Pseudo</div><input class="auth-input" id="reg-user" type="text" placeholder="Choisissez un pseudo" autocomplete="username"></div>
+      <div class="auth-field"><div class="auth-label">Mot de passe</div><input class="auth-input" id="reg-pass" type="password" placeholder="••••••••" autocomplete="new-password"></div>
+      <div class="auth-field"><div class="auth-label">Confirmer</div><input class="auth-input" id="reg-pass2" type="password" placeholder="••••••••"></div>
+      <div class="auth-err" id="reg-err"></div>
+      <button class="auth-btn" id="reg-btn" onclick="doRegister()">CRÉER LE COMPTE</button>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div class="app" id="appRoot">
+  <header class="topbar">
+    <div class="logo">BOUI<em>SYN</em> <span style="font-size:12px;color:var(--text3);font-family:var(--mono);letter-spacing:2px">EXCHANGE</span></div>
+    <div class="topbar-center" id="tickerBar"></div>
+    <div class="topbar-right">
+      <div class="clock" id="topClock">—</div>
+      <div class="ws-badge"><div class="ws-dot" id="wsDot"></div><span id="wsLabel">EN LIGNE</span></div>
+      <div class="wallet-badge" id="topWallet">0 CBS</div>
+      <div class="user-badge" onclick="openLogout()">
+        <div id="topAvatar" style="width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff"></div>
+        <span id="topUser">—</span>
+      </div>
+    </div>
+  </header>
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Navigation</div>
+      <div class="nav-item active" onclick="navigate('dashboard')" id="nav-dashboard"><div class="nav-dot" style="background:var(--accent)"></div>Dashboard</div>
+      <div class="nav-item" onclick="navigate('actions')" id="nav-actions"><div class="nav-dot" style="background:var(--green)"></div>Actions</div>
+      <div class="nav-item" onclick="navigate('commodites')" id="nav-commodites"><div class="nav-dot" style="background:var(--purple)"></div>Commodités</div>
+      <div class="nav-item" onclick="navigate('graphiques')" id="nav-graphiques"><div class="nav-dot" style="background:var(--amber)"></div>Graphiques</div>
+      <div class="nav-item" onclick="navigate('portefeuille')" id="nav-portefeuille"><div class="nav-dot" style="background:var(--cyan)"></div>Portefeuille</div>
+      <div class="nav-item" onclick="navigate('leaderboard')" id="nav-leaderboard"><div class="nav-dot" style="background:var(--gold)"></div>Classement <span class="online-count" id="onlineCount">0</span></div>
+    </div>
+    <div class="sidebar-resources">
+      <div class="sidebar-label" style="padding:0 0 8px">Ressources</div>
+      <div class="res-row"><div class="res-label"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><polygon points="7,1 13,4.5 13,9.5 7,13 1,9.5 1,4.5" stroke="#2a8fd4" stroke-width="1" fill="none"/><circle cx="7" cy="7" r="2" fill="#2a8fd4" opacity=".7"/></svg>BouiSynium</div><div class="res-val" id="sb-syn">0</div></div>
+      <div class="res-row"><div class="res-label"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><polygon points="7,1 12,5.5 7,13 2,5.5" stroke="#8a5ad4" stroke-width="1" fill="none"/><polygon points="7,1 12,5.5 2,5.5" stroke="#8a5ad4" stroke-width=".6" fill="none"/></svg>Diamant</div><div class="res-val" id="sb-dia">0</div></div>
+    </div>
+  </aside>
+  <main class="main" id="mainContent">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-header"><div class="page-title">Dashboard</div><div class="page-sub" id="dashDate">—</div></div>
+      <div class="grid-4 mb16">
+        <div class="card-sm"><div class="stat-label">Portefeuille</div><div class="stat-val" id="d-wallet">—</div><div class="stat-sub">Crédits BouiSyn</div><div class="stat-change" id="d-wallet-pct">—</div></div>
+        <div class="card-sm"><div class="stat-label">Valeur totale</div><div class="stat-val" id="d-total">—</div><div class="stat-sub">wallet + positions</div><div class="stat-change" id="d-total-pct">—</div></div>
+        <div class="card-sm"><div class="stat-label">BouiSynium</div><div class="stat-val" id="d-syn">0</div><div class="stat-sub" id="d-syn-val">—</div></div>
+        <div class="card-sm"><div class="stat-label">Diamant</div><div class="stat-val" id="d-dia">0</div><div class="stat-sub" id="d-dia-val">—</div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card"><div class="section-label">Actions</div><table class="market-table" id="dash-actions-table"></table></div>
+        <div class="card"><div class="section-label">Commodités</div><table class="market-table" id="dash-commo-table"></table></div>
+      </div>
+      <div class="mt24"><div class="card"><div class="section-label">Aperçu — BSY-E</div><div class="chart-wrap-sm"><canvas id="dash-chart"></canvas></div></div></div>
+    </div>
+
+    <!-- ACTIONS -->
+    <div class="page" id="page-actions">
+      <div class="page-header"><div class="page-title">Actions</div><div class="page-sub">Marché des actions BouiSyn</div></div>
+      <div class="grid-2 mb16">
+        <div class="card">
+          <div class="flex-between mb16"><div><div style="font-family:var(--mono);font-size:13px;color:var(--accent);letter-spacing:1px;margin-bottom:4px">BSY-E</div><div style="font-family:var(--sans);font-size:20px;font-weight:600">BouiSyn Energy</div><div style="margin-top:4px"><span class="badge badge-energy">ÉNERGIE</span></div></div><div style="text-align:right"><div style="font-family:var(--mono);font-size:28px" id="ac-price-energy">—</div><div style="font-family:var(--mono);font-size:13px;margin-top:4px" id="ac-change-energy">—</div></div></div>
+          <div class="chart-wrap-sm"><canvas id="chart-energy-mini"></canvas></div>
+          <hr class="sep">
+          <div class="detail-grid mb16">
+            <div class="detail-item"><div class="detail-key">Ouverture</div><div class="detail-val" id="ae-open">—</div></div>
+            <div class="detail-item"><div class="detail-key">Haut</div><div class="detail-val" id="ae-high">—</div></div>
+            <div class="detail-item"><div class="detail-key">Bas</div><div class="detail-val" id="ae-low">—</div></div>
+            <div class="detail-item"><div class="detail-key">Détenu</div><div class="detail-val" id="ae-owned">—</div></div>
+          </div>
+          <div class="flex-between"><button class="modal-btn buy" style="flex:1;margin-right:8px" onclick="openModal('energy','buy')">▲ ACHETER</button><button class="modal-btn sell" style="flex:1" onclick="openModal('energy','sell')">▼ VENDRE</button></div>
+        </div>
+        <div class="card">
+          <div class="flex-between mb16"><div><div style="font-family:var(--mono);font-size:13px;color:var(--purple);letter-spacing:1px;margin-bottom:4px">BSY-G</div><div style="font-family:var(--sans);font-size:20px;font-weight:600">BouiSyn Genetics</div><div style="margin-top:4px"><span class="badge badge-genetics">GÉNÉTIQUE</span></div></div><div style="text-align:right"><div style="font-family:var(--mono);font-size:28px" id="ac-price-genetics">—</div><div style="font-family:var(--mono);font-size:13px;margin-top:4px" id="ac-change-genetics">—</div></div></div>
+          <div class="chart-wrap-sm"><canvas id="chart-genetics-mini"></canvas></div>
+          <hr class="sep">
+          <div class="detail-grid mb16">
+            <div class="detail-item"><div class="detail-key">Ouverture</div><div class="detail-val" id="ag-open">—</div></div>
+            <div class="detail-item"><div class="detail-key">Haut</div><div class="detail-val" id="ag-high">—</div></div>
+            <div class="detail-item"><div class="detail-key">Bas</div><div class="detail-val" id="ag-low">—</div></div>
+            <div class="detail-item"><div class="detail-key">Détenu</div><div class="detail-val" id="ag-owned">—</div></div>
+          </div>
+          <div class="flex-between"><button class="modal-btn buy" style="flex:1;margin-right:8px" onclick="openModal('genetics','buy')">▲ ACHETER</button><button class="modal-btn sell" style="flex:1" onclick="openModal('genetics','sell')">▼ VENDRE</button></div>
+        </div>
+      </div>
+      <div class="card"><div class="section-label">Mes positions</div><div id="positions-actions"></div></div>
+    </div>
+
+    <!-- COMMODITÉS -->
+    <div class="page" id="page-commodites">
+      <div class="page-header"><div class="page-title">Commodités</div><div class="page-sub">Ressources physiques</div></div>
+      <div class="grid-2 mb16">
+        <div class="card">
+          <div class="flex-between mb16"><div><div style="font-family:var(--mono);font-size:13px;color:var(--accent);letter-spacing:1px;margin-bottom:4px">BSY-SYN</div><div style="font-family:var(--sans);font-size:20px;font-weight:600">BouiSynium</div><div style="margin-top:4px"><span class="badge badge-syn">RESSOURCE</span></div></div><div style="text-align:right"><div style="font-family:var(--mono);font-size:28px" id="cc-price-syn">—</div><div style="font-family:var(--mono);font-size:13px;margin-top:4px" id="cc-change-syn">—</div></div></div>
+          <div class="chart-wrap-sm"><canvas id="chart-syn-mini"></canvas></div>
+          <hr class="sep">
+          <div class="detail-grid mb16">
+            <div class="detail-item"><div class="detail-key">Détenu</div><div class="detail-val" id="cc-owned-syn">—</div></div>
+            <div class="detail-item"><div class="detail-key">Valeur</div><div class="detail-val" id="cc-portval-syn">—</div></div>
+            <div class="detail-item"><div class="detail-key">Haut</div><div class="detail-val" id="cs-high">—</div></div>
+            <div class="detail-item"><div class="detail-key">Bas</div><div class="detail-val" id="cs-low">—</div></div>
+          </div>
+          <div class="flex-between"><button class="modal-btn buy" style="flex:1;margin-right:8px" onclick="openModal('syn','buy')">▲ ACHETER</button><button class="modal-btn sell" style="flex:1" onclick="openModal('syn','sell')">▼ VENDRE</button></div>
+        </div>
+        <div class="card">
+          <div class="flex-between mb16"><div><div style="font-family:var(--mono);font-size:13px;color:var(--purple);letter-spacing:1px;margin-bottom:4px">BSY-DIA</div><div style="font-family:var(--sans);font-size:20px;font-weight:600">Diamant</div><div style="margin-top:4px"><span class="badge badge-dia">RESSOURCE RARE</span></div></div><div style="text-align:right"><div style="font-family:var(--mono);font-size:28px" id="cc-price-dia">—</div><div style="font-family:var(--mono);font-size:13px;margin-top:4px" id="cc-change-dia">—</div></div></div>
+          <div class="chart-wrap-sm"><canvas id="chart-dia-mini"></canvas></div>
+          <hr class="sep">
+          <div class="detail-grid mb16">
+            <div class="detail-item"><div class="detail-key">Détenu</div><div class="detail-val" id="cc-owned-dia">—</div></div>
+            <div class="detail-item"><div class="detail-key">Valeur</div><div class="detail-val" id="cc-portval-dia">—</div></div>
+            <div class="detail-item"><div class="detail-key">Haut</div><div class="detail-val" id="cd-high">—</div></div>
+            <div class="detail-item"><div class="detail-key">Bas</div><div class="detail-val" id="cd-low">—</div></div>
+          </div>
+          <div class="flex-between"><button class="modal-btn buy" style="flex:1;margin-right:8px" onclick="openModal('dia','buy')">▲ ACHETER</button><button class="modal-btn sell" style="flex:1" onclick="openModal('dia','sell')">▼ VENDRE</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GRAPHIQUES -->
+    <div class="page" id="page-graphiques">
+      <div class="page-header"><div class="page-title">Graphiques</div><div class="page-sub">Historique des prix — marché partagé</div></div>
+      <div class="card mb16">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+          <div><div id="graph-title" style="font-family:var(--sans);font-size:20px;font-weight:600">BouiSyn Energy</div><div id="graph-ticker" style="font-family:var(--mono);font-size:12px;color:var(--text3);margin-top:2px">BSY-E</div></div>
+          <div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+              <button class="chart-sel-btn active" onclick="selectChart('energy',this)">BSY-E</button>
+              <button class="chart-sel-btn" onclick="selectChart('genetics',this)">BSY-G</button>
+              <button class="chart-sel-btn" onclick="selectChart('syn',this)">BSY-SYN</button>
+              <button class="chart-sel-btn" onclick="selectChart('dia',this)">BSY-DIA</button>
+            </div>
+            <div style="display:flex;gap:6px;margin-top:8px;justify-content:flex-end">
+              <button class="range-btn active" onclick="setRange(30,this)">30pts</button>
+              <button class="range-btn" onclick="setRange(60,this)">60pts</button>
+              <button class="range-btn" onclick="setRange(100,this)">100pts</button>
+              <button class="range-btn" onclick="setRange(-1,this)">Tout</button>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;gap:20px;margin-bottom:16px;flex-wrap:wrap">
+          <div><div class="detail-key">Prix actuel</div><div style="font-family:var(--mono);font-size:22px" id="g-cur">—</div></div>
+          <div><div class="detail-key">Variation</div><div style="font-family:var(--mono);font-size:16px" id="g-chg">—</div></div>
+          <div><div class="detail-key">Haut</div><div style="font-family:var(--mono);font-size:16px;color:var(--green)" id="g-high">—</div></div>
+          <div><div class="detail-key">Bas</div><div style="font-family:var(--mono);font-size:16px;color:var(--red)" id="g-low">—</div></div>
+        </div>
+        <div class="chart-wrap" style="height:340px"><canvas id="main-chart"></canvas></div>
+      </div>
+      <div class="grid-2">
+        <div class="card"><div class="section-label">Actions</div><div class="chart-wrap-sm"><canvas id="g-actions-overview"></canvas></div></div>
+        <div class="card"><div class="section-label">Commodités</div><div class="chart-wrap-sm"><canvas id="g-commo-overview"></canvas></div></div>
+      </div>
+    </div>
+
+    <!-- PORTEFEUILLE -->
+    <div class="page" id="page-portefeuille">
+      <div class="page-header"><div class="page-title">Portefeuille</div><div class="page-sub">Positions & historique</div></div>
+      <div class="grid-4 mb16">
+        <div class="card-sm"><div class="stat-label">CBS disponibles</div><div class="stat-val" id="p-wallet">—</div></div>
+        <div class="card-sm"><div class="stat-label">Valeur positions</div><div class="stat-val" id="p-posval">—</div></div>
+        <div class="card-sm"><div class="stat-label">Total Net</div><div class="stat-val" id="p-total">—</div></div>
+        <div class="card-sm"><div class="stat-label">P&L Global</div><div class="stat-val" id="p-pnl">—</div></div>
+      </div>
+      <div class="card mb16"><div class="section-label">Actions</div><div id="port-actions"></div></div>
+      <div class="card mb16"><div class="section-label">Commodités</div><div id="port-commo"></div></div>
+      <div class="card"><div class="section-label">Historique transactions</div><div id="port-history" style="max-height:320px;overflow-y:auto"></div></div>
+    </div>
+
+    <!-- LEADERBOARD -->
+    <div class="page" id="page-leaderboard">
+      <div class="page-header"><div class="page-title">Classement</div><div class="page-sub">Tous les joueurs — marché commun temps réel</div></div>
+      <div class="lb-me-card" id="lb-me-card"><div style="color:var(--text3);font-family:var(--mono);font-size:13px">Chargement...</div></div>
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div class="section-label" style="margin-bottom:0">Top joueurs</div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="font-family:var(--mono);font-size:11px;color:var(--text3)" id="lb-updated">—</div>
+            <button class="lb-refresh" onclick="wsSend({type:'get_leaderboard'})">↻ Actualiser</button>
+          </div>
+        </div>
+        <div id="lb-list"><div class="port-empty">Chargement du classement...</div></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- MODALS -->
+<div class="modal-overlay" id="tradeModal">
+  <div class="modal">
+    <div class="modal-title" id="modal-name">—</div>
+    <div class="modal-ticker" id="modal-ticker">—</div>
+    <div class="modal-price" id="modal-price">—</div>
+    <div class="modal-change" id="modal-chg">—</div>
+    <div class="modal-owned" id="modal-owned">—</div>
+    <div class="input-label">Quantité</div>
+    <div class="qty-control">
+      <button class="qty-btn" onclick="adjQty(-1)">−</button>
+      <input type="number" class="qty-input" id="modal-qty" value="1" min="1" oninput="updateCost()">
+      <button class="qty-btn" onclick="adjQty(1)">+</button>
+    </div>
+    <div class="cost-preview"><span class="cost-key">Coût total estimé</span><span class="cost-val" id="modal-cost">—</span></div>
+    <div class="modal-btns">
+      <button class="modal-btn buy" id="modal-buy" onclick="confirmTrade('buy')">▲ ACHETER</button>
+      <button class="modal-btn sell" id="modal-sell" onclick="confirmTrade('sell')">▼ VENDRE</button>
+    </div>
+    <button class="modal-close" onclick="closeModal()">ANNULER</button>
+  </div>
+</div>
+
+<div class="logout-overlay" id="logoutOverlay">
+  <div class="logout-box">
+    <h3>Se déconnecter ?</h3>
+    <p>Votre progression est sauvegardée sur le serveur.</p>
+    <div class="logout-btns">
+      <button class="modal-btn sell" style="flex:1" onclick="doLogout()">DÉCONNEXION</button>
+      <button class="modal-close" style="flex:1" onclick="closeLogout()">ANNULER</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════
+//  CONSTANTS
+// ══════════════════════════════════════════
+const INITIAL_WALLET = 2000;
+const NAMES   = {energy:'BouiSyn Energy',genetics:'BouiSyn Genetics',syn:'BouiSynium',dia:'Diamant'};
+const TICKERS = {energy:'BSY-E',genetics:'BSY-G',syn:'BSY-SYN',dia:'BSY-DIA'};
+const COLORS  = {energy:'#2ac48a',genetics:'#8a5ad4',syn:'#2a8fd4',dia:'#d4a020'};
+const TYPES   = {energy:'action',genetics:'action',syn:'commodite',dia:'commodite'};
+
+// ══════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════
+let ws = null;
+let authToken = localStorage.getItem('bsx_token');
+let currentUser = null;
+let avatarColor = '#2a8fd4';
+
+let prices = {energy:284,genetics:512,syn:38,dia:290};
+let opens  = {energy:284,genetics:512,syn:38,dia:290};
+let histPrices = {energy:[],genetics:[],syn:[],dia:[]};
+
+let state = {wallet:INITIAL_WALLET,portfolio:{energy:0,genetics:0},resources:{syn:0,dia:0},tradeHistory:[]};
+let leaderboard = [];
+
+let currentChart = 'energy';
+let chartRange = 30;
+let modalAsset = null;
+let chartInstances = {};
+let saveTimer = null;
+let reconnectTimer = null;
+
+// ══════════════════════════════════════════
+//  WEBSOCKET
+// ══════════════════════════════════════════
+function initWS() {
+  el('connectErr').textContent = '';
+  el('connectStatus').textContent = 'Connexion au serveur';
+  el('connectRetry').style.display = 'none';
+  el('connectScreen').style.display = 'flex';
+  el('authScreen').style.display = 'none';
+  el('appRoot').style.display = 'none';
+
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  const url = `${proto}://${location.host}`;
+
+  try { if (ws) ws.close(); } catch(e) {}
+
+  ws = new WebSocket(url);
+
+  ws.onopen = () => {
+    setWsStatus(true);
+    if (authToken) {
+      wsSend({ type: 'auth', token: authToken });
+    } else {
+      el('connectScreen').style.display = 'none';
+      el('authScreen').style.display = 'flex';
+    }
+  };
+
+  ws.onmessage = (e) => {
+    let msg;
+    try { msg = JSON.parse(e.data); } catch(ex) { return; }
+    handleMessage(msg);
+  };
+
+  ws.onerror = () => {};
+
+  ws.onclose = () => {
+    setWsStatus(false);
+    if (currentUser) {
+      toast('Connexion perdue — reconnexion...', 'error');
+      reconnectTimer = setTimeout(initWS, 4000);
+    } else {
+      el('connectScreen').style.display = 'flex';
+      el('connectErr').textContent = 'Impossible de joindre le serveur.\nVérifiez que le serveur est bien démarré.';
+      el('connectRetry').style.display = 'inline-block';
+    }
+  };
+}
+
+function wsSend(data) {
+  if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(data));
+}
+
+function setWsStatus(online) {
+  const dot = el('wsDot');
+  if (!dot) return;
+  dot.className = 'ws-dot' + (online ? '' : ' off');
+  el('wsLabel').textContent = online ? 'EN LIGNE' : 'HORS LIGNE';
+}
+
+function handleMessage(msg) {
+  switch (msg.type) {
+
+    case 'auth_ok':
+      currentUser = msg.user.username;
+      avatarColor = msg.user.avatarColor;
+      state.wallet = msg.user.wallet;
+      state.portfolio = msg.user.portfolio || {energy:0,genetics:0};
+      state.resources = msg.user.resources || {syn:0,dia:0};
+      state.tradeHistory = msg.user.tradeHistory || [];
+      prices = msg.market.prices;
+      opens  = msg.market.opens;
+      histPrices = msg.market.history;
+      showApp();
+      break;
+
+    case 'auth_error':
+      localStorage.removeItem('bsx_token');
+      authToken = null;
+      el('connectScreen').style.display = 'none';
+      el('authScreen').style.display = 'flex';
+      break;
+
+    case 'price_update':
+      prices = msg.prices;
+      histPrices = msg.history;
+      onPriceTick();
+      break;
+
+    case 'leaderboard':
+      leaderboard = msg.data;
+      el('onlineCount').textContent = leaderboard.length;
+      const apLb = document.querySelector('.page.active')?.id?.replace('page-','');
+      if (apLb === 'leaderboard') renderLeaderboard();
+      break;
+  }
+}
+
+// ══════════════════════════════════════════
+//  AUTH API
+// ══════════════════════════════════════════
+function switchTab(tab) {
+  el('tab-login').classList.toggle('active', tab==='login');
+  el('tab-register').classList.toggle('active', tab==='register');
+  el('form-login').style.display = tab==='login'?'block':'none';
+  el('form-register').style.display = tab==='register'?'block':'none';
+}
+
+async function doLogin() {
+  const user = el('login-user').value.trim();
+  const pass = el('login-pass').value;
+  const errEl = el('login-err');
+  const btn = el('login-btn');
+  if (!user || !pass) { errEl.textContent = 'Remplis tous les champs.'; return; }
+  btn.disabled = true; btn.textContent = 'CONNEXION...';
+  try {
+    const r = await fetch('/api/login', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:user,password:pass})});
+    const d = await r.json();
+    if (!r.ok) { errEl.textContent = d.error; btn.disabled=false; btn.textContent='ENTRER'; return; }
+    authToken = d.token;
+    localStorage.setItem('bsx_token', authToken);
+    wsSend({ type: 'auth', token: authToken });
+  } catch(e) { errEl.textContent = 'Erreur réseau.'; btn.disabled=false; btn.textContent='ENTRER'; }
+}
+
+async function doRegister() {
+  const user  = el('reg-user').value.trim();
+  const pass  = el('reg-pass').value;
+  const pass2 = el('reg-pass2').value;
+  const errEl = el('reg-err');
+  const btn = el('reg-btn');
+  if (!user || !pass) { errEl.textContent = 'Remplis tous les champs.'; return; }
+  if (user.length < 3) { errEl.textContent = 'Pseudo trop court (3 min).'; return; }
+  if (pass.length < 4) { errEl.textContent = 'Mot de passe trop court (4 min).'; return; }
+  if (pass !== pass2)  { errEl.textContent = 'Les mots de passe ne correspondent pas.'; return; }
+  btn.disabled = true; btn.textContent = 'CRÉATION...';
+  try {
+    const r = await fetch('/api/register', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:user,password:pass})});
+    const d = await r.json();
+    if (!r.ok) { errEl.textContent = d.error; btn.disabled=false; btn.textContent='CRÉER LE COMPTE'; return; }
+    authToken = d.token;
+    localStorage.setItem('bsx_token', authToken);
+    wsSend({ type: 'auth', token: authToken });
+  } catch(e) { errEl.textContent = 'Erreur réseau.'; btn.disabled=false; btn.textContent='CRÉER LE COMPTE'; }
+}
+
+function showApp() {
+  el('connectScreen').style.display = 'none';
+  el('authScreen').style.display = 'none';
+  el('appRoot').style.display = 'grid';
+  el('topUser').textContent = currentUser;
+  el('topAvatar').style.background = avatarColor;
+  el('topAvatar').textContent = currentUser.slice(0,2).toUpperCase();
+  renderTopbar();
+  navigate('dashboard');
+  renderClock();
+  setInterval(renderClock, 1000);
+}
+
+function openLogout() { el('logoutOverlay').classList.add('open'); }
+function closeLogout() { el('logoutOverlay').classList.remove('open'); }
+function doLogout() {
+  scheduleSave(true);
+  localStorage.removeItem('bsx_token');
+  authToken = null; currentUser = null;
+  closeLogout();
+  el('appRoot').style.display = 'none';
+  el('authScreen').style.display = 'flex';
+  el('login-pass').value = '';
+}
+
+// ══════════════════════════════════════════
+//  SAVE
+// ══════════════════════════════════════════
+function scheduleSave(immediate = false) {
+  if (saveTimer) clearTimeout(saveTimer);
+  const dot = el('wsDot');
+  if (dot) dot.classList.add('saving');
+  const delay = immediate ? 0 : 800;
+  saveTimer = setTimeout(() => {
+    wsSend({ type: 'save', wallet: state.wallet, portfolio: state.portfolio, resources: state.resources, tradeHistory: state.tradeHistory });
+    if (dot) setTimeout(() => dot.classList.remove('saving'), 500);
+  }, delay);
+}
+
+// ══════════════════════════════════════════
+//  HELPERS
+// ══════════════════════════════════════════
+function el(id){ return document.getElementById(id); }
+function fmt(n){ return Math.round(n).toLocaleString('fr-FR'); }
+function getPct(id){ const c=prices[id],o=opens[id]; return ((c-o)/o*100); }
+function fmtPct(p){ return (p>=0?'▲ +':'▼ ')+Math.abs(p).toFixed(2)+'%'; }
+function pctCls(p){ return p>=0?'up':'down'; }
+function owned(id){ if(id==='syn')return state.resources.syn; if(id==='dia')return state.resources.dia; return state.portfolio[id]||0; }
+function portValue(){ return state.portfolio.energy*prices.energy+state.portfolio.genetics*prices.genetics+state.resources.syn*prices.syn+state.resources.dia*prices.dia; }
+
+// ══════════════════════════════════════════
+//  NAVIGATE
+// ══════════════════════════════════════════
+function navigate(page) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  el('page-'+page).classList.add('active');
+  el('nav-'+page).classList.add('active');
+  renderPage(page);
+}
+function renderPage(p){
+  if(p==='dashboard')    renderDashboard();
+  if(p==='actions')      renderActions();
+  if(p==='commodites')   renderCommodites();
+  if(p==='graphiques')   renderGraphiques();
+  if(p==='portefeuille') renderPortefeuille();
+  if(p==='leaderboard')  renderLeaderboard();
+}
+
+// ══════════════════════════════════════════
+//  CHARTS
+// ══════════════════════════════════════════
+function makeData(id,range){ let d=histPrices[id]||[]; if(range>0&&d.length>range)d=d.slice(d.length-range); return d; }
+function buildChart(cid,id,range){
+  const canvas=el(cid); if(!canvas)return;
+  if(chartInstances[cid])chartInstances[cid].destroy();
+  const data=makeData(id,range),color=COLORS[id];
+  const ctx=canvas.getContext('2d');
+  const grad=ctx.createLinearGradient(0,0,0,canvas.offsetHeight||200);
+  grad.addColorStop(0,color+'44'); grad.addColorStop(1,color+'00');
+  chartInstances[cid]=new Chart(ctx,{type:'line',data:{labels:data.map((_,i)=>i),datasets:[{data,borderColor:color,borderWidth:2,fill:true,backgroundColor:grad,pointRadius:0,tension:.3}]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:200},plugins:{legend:{display:false},tooltip:{backgroundColor:'#0e1620',borderColor:'#1a2a3a',borderWidth:1,titleColor:'#7a9ab8',bodyColor:'#ddeeff',callbacks:{label:c=>fmt(c.parsed.y)+' CBS'}}},scales:{x:{display:false},y:{grid:{color:'#1a2a3a55'},ticks:{color:'#3a5a7a',font:{family:"'Share Tech Mono'"},callback:v=>fmt(v)}}}}});
+}
+function buildOverview(cid,ids){
+  const canvas=el(cid); if(!canvas)return;
+  if(chartInstances[cid])chartInstances[cid].destroy();
+  const maxLen=Math.max(...ids.map(id=>(histPrices[id]||[]).length));
+  chartInstances[cid]=new Chart(canvas.getContext('2d'),{type:'line',data:{labels:Array.from({length:maxLen},(_,i)=>i),datasets:ids.map(id=>({label:TICKERS[id],data:histPrices[id]||[],borderColor:COLORS[id],borderWidth:1.5,fill:false,pointRadius:0,tension:.3}))},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#7a9ab8',font:{family:"'Share Tech Mono'",size:11},boxWidth:12}}},scales:{x:{display:false},y:{grid:{color:'#1a2a3a55'},ticks:{color:'#3a5a7a',font:{family:"'Share Tech Mono'"},callback:v=>fmt(v)}}}}});
+}
+
+// ══════════════════════════════════════════
+//  TOPBAR / CLOCK
+// ══════════════════════════════════════════
+function renderTopbar(){
+  if(!currentUser)return;
+  el('tickerBar').innerHTML=['energy','genetics','syn','dia'].map(id=>{const p=getPct(id);return`<div class="ticker-item"><span class="ticker-name">${TICKERS[id]}</span><span class="ticker-price">${fmt(prices[id])}</span><span class="${pctCls(p)}">${fmtPct(p)}</span></div>`;}).join('');
+  el('topWallet').textContent=fmt(state.wallet)+' CBS';
+  el('sb-syn').textContent=fmt(state.resources.syn);
+  el('sb-dia').textContent=fmt(state.resources.dia);
+}
+function renderClock(){ const n=new Date(); el('topClock').textContent=[n.getHours(),n.getMinutes(),n.getSeconds()].map(v=>String(v).padStart(2,'0')).join(':'); }
+
+// ══════════════════════════════════════════
+//  DASHBOARD
+// ══════════════════════════════════════════
+function renderDashboard(){
+  const pv=portValue(),total=state.wallet+pv,pnl=total-INITIAL_WALLET,pct=pnl/INITIAL_WALLET*100;
+  el('d-wallet').textContent=fmt(state.wallet);
+  el('d-wallet-pct').innerHTML=`<span class="${pctCls(pct)}">${fmtPct(pct)}</span>`;
+  el('d-total').textContent=fmt(total);
+  el('d-total-pct').innerHTML=`<span class="${pctCls(pnl)}">${pnl>=0?'+':'-'}${fmt(Math.abs(pnl))} CBS</span>`;
+  el('d-syn').textContent=fmt(state.resources.syn);
+  el('d-syn-val').textContent='Valeur: '+fmt(state.resources.syn*prices.syn)+' CBS';
+  el('d-dia').textContent=fmt(state.resources.dia);
+  el('d-dia-val').textContent='Valeur: '+fmt(state.resources.dia*prices.dia)+' CBS';
+  el('dashDate').textContent='BSX — '+new Date().toLocaleDateString('fr-FR',{weekday:'long',year:'numeric',month:'long',day:'numeric'})+(currentUser?' — '+currentUser:'');
+  el('dash-actions-table').innerHTML=mktRows(['energy','genetics']);
+  el('dash-commo-table').innerHTML=mktRows(['syn','dia']);
+  buildChart('dash-chart','energy',40);
+}
+function mktRows(ids){
+  return`<thead><tr><th>Actif</th><th>Prix</th><th>Var.</th><th>Détenu</th><th></th></tr></thead><tbody>`+ids.map(id=>{const p=getPct(id);return`<tr onclick="navigate('${TYPES[id]==='action'?'actions':'commodites'}')"><td><div style="font-weight:500">${NAMES[id]}</div><div style="font-family:var(--mono);font-size:10px;color:var(--text3)">${TICKERS[id]}</div></td><td style="font-family:var(--mono)">${fmt(prices[id])}</td><td style="font-family:var(--mono)" class="${pctCls(p)}">${fmtPct(p)}</td><td style="font-family:var(--mono);color:var(--text2)">${owned(id)}</td><td><button class="btn-sm btn-buy" onclick="event.stopPropagation();openModal('${id}','buy')">▲</button></td></tr>`;}).join('')+'</tbody>';
+}
+
+// ══════════════════════════════════════════
+//  ACTIONS / COMMODITÉS
+// ══════════════════════════════════════════
+function renderActions(){
+  ['energy','genetics'].forEach(id=>{
+    const p=getPct(id),hist=histPrices[id]||[],pre=id==='energy'?'ae':'ag';
+    el(`ac-price-${id}`).textContent=fmt(prices[id])+' CBS';
+    el(`ac-change-${id}`).innerHTML=`<span class="${pctCls(p)}">${fmtPct(p)}</span>`;
+    el(`${pre}-open`).textContent=fmt(opens[id]);
+    el(`${pre}-high`).textContent=fmt(Math.max(...(hist.slice(-30).length?hist.slice(-30):[prices[id]])));
+    el(`${pre}-low`).textContent=fmt(Math.min(...(hist.slice(-30).length?hist.slice(-30):[prices[id]])));
+    el(`${pre}-owned`).textContent=owned(id);
+    buildChart(`chart-${id}-mini`,id,40);
+  });
+  el('positions-actions').innerHTML=(['energy','genetics'].filter(id=>state.portfolio[id]>0).map(portRowHtml).join(''))||'<div class="port-empty">Aucune position ouverte</div>';
+}
+function renderCommodites(){
+  ['syn','dia'].forEach(id=>{
+    const p=getPct(id),hist=histPrices[id]||[],o=owned(id),pre=id==='syn'?'cs':'cd';
+    el(`cc-price-${id}`).textContent=fmt(prices[id])+' CBS';
+    el(`cc-change-${id}`).innerHTML=`<span class="${pctCls(p)}">${fmtPct(p)}</span>`;
+    el(`cc-owned-${id}`).textContent=fmt(o);
+    el(`cc-portval-${id}`).textContent=fmt(o*prices[id])+' CBS';
+    el(`${pre}-high`).textContent=fmt(Math.max(...(hist.slice(-30).length?hist.slice(-30):[prices[id]])));
+    el(`${pre}-low`).textContent=fmt(Math.min(...(hist.slice(-30).length?hist.slice(-30):[prices[id]])));
+    buildChart(`chart-${id}-mini`,id,40);
+  });
+}
+
+// ══════════════════════════════════════════
+//  GRAPHIQUES
+// ══════════════════════════════════════════
+function renderGraphiques(){ drawMainChart(); buildOverview('g-actions-overview',['energy','genetics']); buildOverview('g-commo-overview',['syn','dia']); }
+function drawMainChart(){
+  const id=currentChart,data=makeData(id,chartRange),p=getPct(id);
+  el('graph-title').textContent=NAMES[id]; el('graph-ticker').textContent=TICKERS[id];
+  el('g-cur').textContent=fmt(prices[id])+' CBS';
+  el('g-chg').innerHTML=`<span class="${pctCls(p)}">${fmtPct(p)}</span>`;
+  el('g-high').textContent=fmt(Math.max(...(data.length?data:[prices[id]])))+' CBS';
+  el('g-low').textContent=fmt(Math.min(...(data.length?data:[prices[id]])))+' CBS';
+  buildChart('main-chart',id,chartRange);
+}
+function selectChart(id,btn){ currentChart=id; document.querySelectorAll('.chart-sel-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); drawMainChart(); }
+function setRange(r,btn){ chartRange=r; document.querySelectorAll('.range-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); drawMainChart(); }
+
+// ══════════════════════════════════════════
+//  PORTEFEUILLE
+// ══════════════════════════════════════════
+function portRowHtml(id){
+  const q=owned(id),price=prices[id],val=q*price,p=getPct(id);
+  return`<div class="port-row"><div><div class="port-name">${NAMES[id]}</div><div class="port-ticker">${TICKERS[id]}</div></div><div class="port-qty">${q} ${TYPES[id]==='action'?'actions':'unités'}<br><span style="font-size:11px;color:var(--text3)">${fmt(price)} CBS/u</span></div><div class="port-val">${fmt(val)} CBS</div><div class="port-pnl ${pctCls(p)}">${fmtPct(p)}</div><div><button class="btn-sm btn-sell" onclick="openModal('${id}','sell')">▼ Vendre</button></div></div>`;
+}
+function renderPortefeuille(){
+  const pv=portValue(),total=state.wallet+pv,pnl=total-INITIAL_WALLET;
+  el('p-wallet').textContent=fmt(state.wallet)+' CBS';
+  el('p-posval').textContent=fmt(pv)+' CBS';
+  el('p-total').textContent=fmt(total)+' CBS';
+  el('p-pnl').innerHTML=`<span class="${pctCls(pnl)}">${pnl>=0?'+':'-'}${fmt(Math.abs(pnl))} CBS</span>`;
+  const ae=['energy','genetics'].filter(id=>state.portfolio[id]>0);
+  el('port-actions').innerHTML=ae.length?ae.map(portRowHtml).join(''):'<div class="port-empty">Aucune action détenue</div>';
+  const ce=[]; if(state.resources.syn>0)ce.push('syn'); if(state.resources.dia>0)ce.push('dia');
+  el('port-commo').innerHTML=ce.length?ce.map(portRowHtml).join(''):'<div class="port-empty">Aucune commodité détenue</div>';
+  el('port-history').innerHTML=state.tradeHistory.length?state.tradeHistory.slice().reverse().map(t=>{const cls=t.dir==='buy'?'up':'down',icon=t.dir==='buy'?'▲':'▼';return`<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;border-bottom:1px solid var(--border);font-size:13px;gap:8px"><span style="font-family:var(--mono);color:var(--text3);white-space:nowrap">${t.time}</span><span class="${cls}">${icon} ${t.dir.toUpperCase()}</span><span>${TICKERS[t.id]}</span><span style="font-family:var(--mono)">${t.qty}×${fmt(t.price)}</span><span class="${cls}" style="font-family:var(--mono);white-space:nowrap">${t.dir==='buy'?'−':'+'}${fmt(t.total)} CBS</span></div>`;}).join(''):'<div class="port-empty">Aucune transaction</div>';
+}
+
+// ══════════════════════════════════════════
+//  LEADERBOARD
+// ══════════════════════════════════════════
+function renderLeaderboard(){
+  const meEntry = leaderboard.find(e=>e.username.toLowerCase()===currentUser?.toLowerCase());
+  const meRank  = meEntry ? leaderboard.indexOf(meEntry)+1 : null;
+  const meCard  = el('lb-me-card');
+  if(meEntry){
+    const pct=meEntry.pnl/INITIAL_WALLET*100;
+    meCard.innerHTML=`<div style="display:flex;align-items:center;gap:12px"><div style="width:42px;height:42px;border-radius:50%;background:${meEntry.avatarColor};display:flex;align-items:center;justify-content:center;font-family:var(--sans);font-size:17px;font-weight:700;color:#fff">${meEntry.username.slice(0,2).toUpperCase()}</div><div><div style="font-size:16px;font-weight:500">${meEntry.username} <span style="font-family:var(--mono);font-size:10px;color:var(--accent);background:var(--bg0);border:1px solid var(--border2);padding:2px 7px;border-radius:3px">VOUS</span></div><div style="font-family:var(--mono);font-size:12px;color:var(--text3);margin-top:3px">Rang #${meRank} sur ${leaderboard.length} joueur${leaderboard.length>1?'s':''}</div></div></div><div style="text-align:right"><div style="font-family:var(--mono);font-size:22px">${fmt(meEntry.total)} CBS</div><div class="${pctCls(meEntry.pnl)}" style="font-family:var(--mono);font-size:13px;margin-top:4px">${meEntry.pnl>=0?'+':'-'}${fmt(Math.abs(meEntry.pnl))} CBS (${fmtPct(pct)})</div></div>`;
+  } else {
+    meCard.innerHTML='<div style="color:var(--text3);font-family:var(--mono);font-size:13px">Effectuez votre première transaction pour apparaître.</div>';
+  }
+  if(!leaderboard.length){ el('lb-list').innerHTML='<div class="port-empty">Aucun joueur enregistré.</div>'; return; }
+  const medals=['','🥇','🥈','🥉'];
+  const rankCls=['','lb-r1','lb-r2','lb-r3'];
+  el('lb-list').innerHTML=leaderboard.map((e,i)=>{
+    const rank=i+1,isMe=e.username.toLowerCase()===currentUser?.toLowerCase();
+    const pct=e.pnl/INITIAL_WALLET*100;
+    return`<div class="lb-row" style="${isMe?'background:var(--bg3);border-left:2px solid var(--accent);padding-left:14px':''}">
+      <div class="lb-rank ${rank<=3?rankCls[rank]:'lb-rn'}">${rank<=3?medals[rank]:rank}</div>
+      <div class="lb-avatar" style="background:${e.avatarColor}">${e.username.slice(0,2).toUpperCase()}</div>
+      <div style="flex:1"><div class="lb-name">${e.username}${isMe?' <span style="font-family:var(--mono);font-size:10px;color:var(--accent);border:1px solid var(--border2);padding:1px 6px;border-radius:3px;background:var(--bg0)">VOUS</span>':''}</div><div style="font-family:var(--mono);font-size:11px;color:var(--text3);margin-top:2px">Màj ${new Date(e.updatedAt).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</div></div>
+      <div style="text-align:right"><div class="lb-total">${fmt(e.total)} CBS</div><div class="lb-pnl ${pctCls(e.pnl)}">${e.pnl>=0?'+':'-'}${fmt(Math.abs(e.pnl))} (${Math.abs(pct).toFixed(1)}%)</div></div>
+    </div>`;
+  }).join('');
+  const last=leaderboard.reduce((m,e)=>Math.max(m,e.updatedAt||0),0);
+  el('lb-updated').textContent=last?'Màj '+new Date(last).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}):'';
+}
+
+// ══════════════════════════════════════════
+//  MODAL TRADE
+// ══════════════════════════════════════════
+function openModal(id,dir){
+  modalAsset=id;
+  const p=getPct(id);
+  el('modal-name').textContent=NAMES[id];
+  el('modal-ticker').textContent=TICKERS[id]+' — '+(TYPES[id]==='action'?'Action':'Commodité');
+  el('modal-price').textContent=fmt(prices[id])+' CBS';
+  el('modal-chg').innerHTML=`<span class="${pctCls(p)}">${fmtPct(p)}</span>`;
+  el('modal-qty').value=1;
+  el('modal-owned').textContent='Détenu : '+owned(id)+' '+(TYPES[id]==='action'?'actions':'unités');
+  updateCost();
+  el('modal-buy').disabled=false;
+  el('modal-sell').disabled=(owned(id)===0);
+  el('tradeModal').classList.add('open');
+}
+function closeModal(){ el('tradeModal').classList.remove('open'); modalAsset=null; }
+function adjQty(d){ el('modal-qty').value=Math.max(1,(parseInt(el('modal-qty').value)||1)+d); updateCost(); }
+function updateCost(){ if(!modalAsset)return; el('modal-cost').textContent=fmt((parseInt(el('modal-qty').value)||1)*prices[modalAsset])+' CBS'; }
+
+function confirmTrade(dir){
+  const id=modalAsset; if(!id)return;
+  const qty=parseInt(el('modal-qty').value)||1;
+  const price=prices[id],total=qty*price;
+  const timeStr=new Date().toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+  if(dir==='buy'){
+    if(total>state.wallet){toast('CBS insuffisants','error');return;}
+    state.wallet-=total;
+    if(id==='syn')state.resources.syn+=qty;
+    else if(id==='dia')state.resources.dia+=qty;
+    else state.portfolio[id]+=qty;
+    toast(`Achat ${qty}× ${TICKERS[id]} — −${fmt(total)} CBS`,'success');
+  } else {
+    if(owned(id)<qty){toast('Quantité insuffisante','error');return;}
+    state.wallet+=total;
+    if(id==='syn')state.resources.syn-=qty;
+    else if(id==='dia')state.resources.dia-=qty;
+    else state.portfolio[id]-=qty;
+    toast(`Vente ${qty}× ${TICKERS[id]} — +${fmt(total)} CBS`,'success');
+  }
+  state.tradeHistory.push({id,dir,qty,price,total,time:timeStr});
+  closeModal();
+  renderTopbar();
+  scheduleSave();
+  const ap=document.querySelector('.page.active')?.id?.replace('page-','');
+  if(ap)renderPage(ap);
+}
+
+// ══════════════════════════════════════════
+//  ON PRICE TICK
+// ══════════════════════════════════════════
+function onPriceTick(){
+  if(!currentUser)return;
+  renderTopbar();
+  const ap=document.querySelector('.page.active')?.id?.replace('page-','');
+  if(ap==='dashboard')renderDashboard();
+  if(ap==='actions')renderActions();
+  if(ap==='commodites')renderCommodites();
+  if(ap==='graphiques')drawMainChart();
+  if(ap==='portefeuille')renderPortefeuille();
+}
+
+// ══════════════════════════════════════════
+//  TOAST
+// ══════════════════════════════════════════
+let toastTimer=null;
+function toast(msg,type='info'){
+  const t=el('toast');
+  t.textContent=msg; t.className=`toast ${type} show`;
+  if(toastTimer)clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+// ══════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════
+el('tradeModal').addEventListener('click',function(e){if(e.target===this)closeModal();});
+el('logoutOverlay').addEventListener('click',function(e){if(e.target===this)closeLogout();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeLogout();}});
+el('login-pass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+el('reg-pass2').addEventListener('keydown',e=>{if(e.key==='Enter')doRegister();});
+
+initWS();
+</script>
+</body>
+</html>
